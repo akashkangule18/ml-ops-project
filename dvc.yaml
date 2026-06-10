@@ -1,0 +1,46 @@
+stages:
+  data_ingestion:
+    cmd: python src/data/data_ingestion.py
+    params:
+    - data_ingestion.test_size
+    deps:
+    - src/data/data_ingestion.py
+    outs:
+    - data/raw
+  data_interim:
+    cmd: python src/data/data_interim.py
+    deps:
+    - data/raw
+    - src/data/data_interim.py
+    outs:
+    - data/interim
+  features:
+    cmd: python src/features/features.py
+    params:
+    - features.n_components
+    deps:
+    - data/interim
+    - src/features/features.py
+    outs:
+    - data/processed
+  model_building:
+    cmd: python src/model/model_building.py
+    params:
+    - model_building.n_estimators
+    - model_building.max_depth
+    - model_building.min_samples_split
+    deps:
+    - data/interim
+    - data/processed
+    - src/model/model_building.py
+    outs:
+    - models/model.pkl
+  model_evaluation:
+    cmd: python src/model/model_evalution.py
+    deps:
+    - data/interim
+    - data/processed
+    - models/model.pkl
+    - src/model/model_evalution.py
+    metrics:
+    - reports/metrics.json
