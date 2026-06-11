@@ -5,6 +5,8 @@ import seaborn as sns
 import pickle
 import json
 from logger import logger
+import mlflow
+
 
 # getting model
 def load_model(model_path):
@@ -86,12 +88,15 @@ def save_json(file_path,metric_report):
 
 
 def main():
-    model = load_model("./models/model.pkl")
-    X_test, y_test = load_data("./data/processed/test_tr_processed.csv","./data/interim/test_interim_data.csv")
-    y_pred = pred(model, X_test)
-    acc, pcc, cmc, rcc = eval(y_test,y_pred)
-    metric_report= report(acc, pcc, rcc, cmc)
-    save_json('reports/metrics.json',metric_report)
+         
+        model = load_model("./models/model.pkl")
+        X_test, y_test = load_data("./data/processed/test_tr_processed.csv","./data/interim/test_interim_data.csv")
+        y_pred = pred(model, X_test)
+        acc, pcc, cmc, rcc = eval(y_test,y_pred)
+        metric_report= report(acc, pcc, rcc, cmc)
+        save_json('reports/metrics.json',metric_report)
+
+
 
 
 
