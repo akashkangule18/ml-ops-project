@@ -1,93 +1,79 @@
-import mlflow
-import pickle
 import pandas as pd
 import numpy as np
 import seaborn as sns
-import logger
+import mlflow
 import dagshub
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+import pickle
 import json
 
 
-from logger import logger
+# making connection with dagshub
+dagshub.init(repo_owner='akashkangule18', repo_name='ml-ops-project', mlflow=True) #  fetching model from the model evaluation
 
 
 
-dagshub.init(repo_owner='akashkangule18', repo_name='ml-ops-project', mlflow=True)
+
+# starting experiment
+mlflow.set_experiment("final model registerd-staging")
+
+with mlflow.start_run(run_name = 'model_registering'):
+    with open ("models/model.pkl",'rb') as file:
+      model = pickle.load(file)
 
 
-# getting model
-def load_model(model_path):
-    try: 
-        with open (model_path,'rb') as file:
-            model = pickle.load(file)
-        logger.info('model_load_sucessfully')
-        return model
-    except Exception as e:
-        logger.error(f"chek the model path")
-        raise
+    # fetching trianig data for model signature
+    X_train = pd.read_csv("./data/processed/train_tr_processed.csv")
 
-def load_data(trainig_data_path):
-    try:
+    # fetching metrics report for log
 
-        # fetching the x_test and y_test for prediction
-        X_train = pd.read_csv(trainig_data_path)
-        logger.info('X_test and y_test fetched sucessfully')
-        return X_train
-    except Exception as e:
-        logger.error(f"chek the test data path")
-        raise
+    with open("reports/metrics.json","r") as file:
+        metrics = json.load(file)
 
-def load_metrics(metric_path):
-    try:
-        with open(metric_path,"r") as file:
-            metrics = json.load(file)
-            return metrics
-    except Exception as e:
-        logger.error(f"chek the test metric path")
-        raise
+    # logging params
+    mlflow.log_params(model.get_params())
 
-mlflow.set_experiment("model_register")
-def main ():
-    with mlflow.start_run(run_name =" base model register") as parent_run:
+    # logiing file 
+    mlflow.log_artifact(__file__)
 
-        # load model
-        model = load_model("./models/model.pkl")
+    # logging metric reports
+    mlflow.log_artifact("reports/metrics.json")
 
-        # getting training data for signature
-        X_train = load_data("./data/processed/train_tr_processed.csv")
+    # logging paramas
+    mlflow.log_metric("accuracy_score", metrics['accuracy_score'])
+    mlflow.log_metric('precision_score', metrics['precision_score'])
+    mlflow.log_metric('recall_score',metrics['recall_score'])
 
-        # loading metrics.json file
-        metrics = load_metrics("./reports/metrics.json")
-
-        # log params
-        mlflow.log_params(model.get_params())
-
-        # log metrics
-
-        mlflow.log_metric("accuracy_score",metrics['accuracy_score'])
-        mlflow.log_metric('precision_score', metrics['precision_score'])
-        mlflow.log_metric("recall_score", metrics['recall_score'])
+    # siganture
+    pred = model.predict(X_train)
+    signature = mlflow.models.infer_signature(X_train, pred)
 
 
-        # log file
-        mlflow.log_artifact(__file__)
-        mlflow.log_artifact("./reports/metrics.json")
-
-        # siganture
-        signature = mlflow.models.infer_signature(X_train, model.predict(X_train))
-
-        # log and register model
-        mlflow.sklearn.log_model(
-            sk_model = model,
-            name = "Random_Forest_Model",
-            signature = signature,
-            registered_model_name = "RandomForestClassifier"
-        )
+    # model registeration and  
+    mlflow.sklearn.log_model(
+       sk_model = model,
+       name = 'Random_forest_model',
+       signature = signature,
+       registered_model_name = 'Random_forest_classifier'
+    )
 
 
-if __name__ == "__main__":
-    main()
-        
+    # staging
+    from mlflow.tracking import MlflowClient
+    client = MlflowClient()
+
+     # getting latest versions of models
+    latest_version = client.search_model_versions(
+       "name = 'Random_forest_classifier'"
+    )[-1].version
+
+    client.set_registered_model_alias(
+       name = "Random_forest_classifier",
+       alias = 'Staging',
+       version = latest_version
+    ) 
+ 
+
+    print('model registration and staging sucessfully')
+
 
     

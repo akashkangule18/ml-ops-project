@@ -47,7 +47,7 @@ stages:
   model_register:
     cmd: python src/model/model_register.py
     deps: 
-    - data/interim
     - data/processed
     - models/model.pkl
-    - src/model/model_evalution.py
+    - reports/metrics.json
+    - src/model/model_register.py
