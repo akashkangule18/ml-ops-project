@@ -31,6 +31,7 @@ with mlflow.start_run(run_name = 'model_registering'):
 
     # logging params
     mlflow.log_params(model.get_params())
+    mlflow.log_param("test_size", 0.4)
 
     # logiing file 
     mlflow.log_artifact(__file__)
