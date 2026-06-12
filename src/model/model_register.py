@@ -62,10 +62,10 @@ with mlflow.start_run(run_name = 'model_registering'):
     from mlflow.tracking import MlflowClient
     client = MlflowClient()
 
-     # getting latest versions of models
-    latest_version = client.search_model_versions(
-       "name = 'Random_forest_classifier'"
-    )[-1].version
+    versions = client.search_model_versions(
+    "name='Random_forest_classifier'")
+
+    latest_version = max(int(v.version) for v in versions)
 
     client.set_registered_model_alias(
        name = "Random_forest_classifier",
