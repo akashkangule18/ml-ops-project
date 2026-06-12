@@ -1,0 +1,27 @@
+name: CI-Pipeline
+
+on: push
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: code checkout
+        uses: actions/checkout@v4
+
+      - name: = setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.13'
+
+
+      - name: install all dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: run dvc
+        run: |
+          dvc repro
+
+
