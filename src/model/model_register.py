@@ -39,11 +39,11 @@ mlflow.set_experiment("final model registerd-staging")
 
 with mlflow.start_run(run_name="model_registering"):
 
-    # Load trained model
+    # Load model
     with open("models/model.pkl", "rb") as file:
         model = pickle.load(file)
 
-    # Load processed training data
+    # Load training data
     X_train = pd.read_csv(
         "./data/processed/train_tr_processed.csv"
     )
@@ -53,7 +53,7 @@ with mlflow.start_run(run_name="model_registering"):
         metrics = json.load(file)
 
     # ==========================================
-    # Log Parameters
+    # Log Params
     # ==========================================
 
     mlflow.log_params(model.get_params())
@@ -86,7 +86,7 @@ with mlflow.start_run(run_name="model_registering"):
     )
 
     # ==========================================
-    # Model Signature
+    # Infer Signature
     # ==========================================
 
     predictions = model.predict(X_train)
@@ -122,29 +122,45 @@ with mlflow.start_run(run_name="model_registering"):
     print("\nAvailable Versions:")
 
     for v in versions:
-        print(
-            f"Version={v.version}"
-        )
+        print(f"Version={v.version}")
 
     latest_version = max(
         int(v.version)
         for v in versions
     )
 
-    # ==========================================
-    # Assign Staging Alias
-    # ==========================================
-
-    client.set_registered_model_alias(
-        name="Random_forest_classifier",
-        version=str(latest_version),
-        key="stage",
-        value="Staging"
+    print(
+        f"\nLatest Version: {latest_version}"
     )
 
     print(
-        f"Version {latest_version} assigned alias 'Staging'"
+        "Version Type:",
+        type(latest_version)
     )
+
+    # ==========================================
+    # Update Staging Alias
+    # ==========================================
+
+    try:
+        client.set_registered_model_alias(
+            "Random_forest_classifier",
+            "Staging",
+            str(latest_version)
+        )
+
+        print(
+            f"Staging moved to Version {latest_version}"
+        )
+
+    except Exception as e:
+        print(
+            f"Alias update failed: {e}"
+        )
+
+    # ==========================================
+    # Show Versions
+    # ==========================================
 
     print("\nRegistered Versions:")
 
@@ -156,4 +172,6 @@ with mlflow.start_run(run_name="model_registering"):
             f"Aliases={getattr(v, 'aliases', [])}"
         )
 
-    print("\nModel registration successful")
+    print(
+        "\nModel registration successful"
+    )
