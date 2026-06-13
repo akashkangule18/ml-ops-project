@@ -7,16 +7,21 @@ import mlflow.sklearn
 from mlflow.models import infer_signature
 from mlflow.tracking import MlflowClient
 
-# ==========================
-# DagsHub + MLflow Setup
-# ==========================
+# ==========================================
+# DagsHub + MLflow Authentication
+# ==========================================
 
 dagshub_token = os.getenv("DAGSHUB_PAT")
 
 if not dagshub_token:
-    raise EnvironmentError("DAGSHUB_PAT environment variable is not set")
+    raise ValueError(
+        "DAGSHUB_PAT not found. Check GitHub Secrets."
+    )
 
-os.environ["MLFLOW_TRACKING_USERNAME"] = dagshub_token
+print("DAGSHUB_PAT found")
+print("Token length:", len(dagshub_token))
+
+os.environ["MLFLOW_TRACKING_USERNAME"] = "akashkangule18"
 os.environ["MLFLOW_TRACKING_PASSWORD"] = dagshub_token
 
 mlflow.set_tracking_uri(
@@ -26,19 +31,19 @@ mlflow.set_tracking_uri(
 print("MLflow Version:", mlflow.__version__)
 print("Tracking URI:", mlflow.get_tracking_uri())
 
-# ==========================
+# ==========================================
 # Experiment
-# ==========================
+# ==========================================
 
 mlflow.set_experiment("final model registerd-staging")
 
 with mlflow.start_run(run_name="model_registering"):
 
-    # Load model
+    # Load trained model
     with open("models/model.pkl", "rb") as file:
         model = pickle.load(file)
 
-    # Load training data
+    # Load processed training data
     X_train = pd.read_csv(
         "./data/processed/train_tr_processed.csv"
     )
@@ -47,15 +52,24 @@ with mlflow.start_run(run_name="model_registering"):
     with open("reports/metrics.json", "r") as file:
         metrics = json.load(file)
 
-    # Log parameters
+    # ==========================================
+    # Log Parameters
+    # ==========================================
+
     mlflow.log_params(model.get_params())
     mlflow.log_param("test_size", 0.4)
 
-    # Log artifacts
+    # ==========================================
+    # Log Artifacts
+    # ==========================================
+
     mlflow.log_artifact(__file__)
     mlflow.log_artifact("reports/metrics.json")
 
-    # Log metrics
+    # ==========================================
+    # Log Metrics
+    # ==========================================
+
     mlflow.log_metric(
         "accuracy_score",
         metrics["accuracy_score"]
@@ -71,7 +85,10 @@ with mlflow.start_run(run_name="model_registering"):
         metrics["recall_score"]
     )
 
-    # Signature
+    # ==========================================
+    # Model Signature
+    # ==========================================
+
     predictions = model.predict(X_train)
 
     signature = infer_signature(
@@ -79,7 +96,10 @@ with mlflow.start_run(run_name="model_registering"):
         predictions
     )
 
+    # ==========================================
     # Register Model
+    # ==========================================
+
     model_info = mlflow.sklearn.log_model(
         sk_model=model,
         artifact_path="Random_forest_model",
@@ -89,9 +109,9 @@ with mlflow.start_run(run_name="model_registering"):
 
     print("Model URI:", model_info.model_uri)
 
-    # ==========================
-    # Set Staging Alias
-    # ==========================
+    # ==========================================
+    # Model Registry
+    # ==========================================
 
     client = MlflowClient()
 
@@ -99,10 +119,21 @@ with mlflow.start_run(run_name="model_registering"):
         "name='Random_forest_classifier'"
     )
 
+    print("\nAvailable Versions:")
+
+    for v in versions:
+        print(
+            f"Version={v.version}"
+        )
+
     latest_version = max(
         int(v.version)
         for v in versions
     )
+
+    # ==========================================
+    # Assign Staging Alias
+    # ==========================================
 
     client.set_registered_model_alias(
         name="Random_forest_classifier",
@@ -111,8 +142,7 @@ with mlflow.start_run(run_name="model_registering"):
     )
 
     print(
-        f"Version {latest_version} "
-        f"assigned alias 'Staging'"
+        f"Version {latest_version} assigned alias 'Staging'"
     )
 
     print("\nRegistered Versions:")
@@ -122,9 +152,7 @@ with mlflow.start_run(run_name="model_registering"):
     ):
         print(
             f"Version={v.version}, "
-            f"Aliases={getattr(v,'aliases',[])}"
+            f"Aliases={getattr(v, 'aliases', [])}"
         )
 
-    print(
-        "\nModel registration and staging successful"
-    )
+    print("\nModel registration successful")
