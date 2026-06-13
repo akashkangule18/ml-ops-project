@@ -1,32 +1,27 @@
-name: CI-Pipeline
+name: Ci-pipe
 
 on: push
 
 jobs:
-  run-pipeline:
+  workflow-testing:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
+      - name: checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      
+      - name: setup python
+        uses: actions/setup-python@v2
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
-      - name: Upgrade pip
+      - name: upgrade pip
         run: |
           python -m pip install --upgrade pip
 
-      - name: Install dependencies
+      - name: install dependencies
         run: |
           pip install -r requirements.txt
 
-      - name: Verify seaborn installation
-        run: |
-          pip show seaborn
-
-      - name: Run DVC pipeline
+      - name: run dvc
         run: |
           dvc repro
