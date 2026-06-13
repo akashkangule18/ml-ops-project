@@ -137,8 +137,9 @@ with mlflow.start_run(run_name="model_registering"):
 
     client.set_registered_model_alias(
         name="Random_forest_classifier",
-        alias="Staging",
-        version=latest_version
+        version=str(latest_version),
+        key="stage",
+        value="Staging"
     )
 
     print(
