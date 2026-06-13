@@ -62,7 +62,7 @@ with mlflow.start_run(run_name = 'model_registering'):
     # model registeration and  
     mlflow.sklearn.log_model(
        sk_model = model,
-       name = 'Random_forest_model',
+       artifact_path = 'Random_forest_model',
        signature = signature,
        registered_model_name = 'Random_forest_classifier'
     )
